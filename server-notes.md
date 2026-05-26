@@ -192,7 +192,7 @@ export const departments = pgTable('departments', {
     id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
     code: varchar('code', { length: 50 }).notNull().unique(),
     name: varchar('name', { length: 255 }).notNull(),
-    description: varchar('name', { length: 255 }),
+    description: varchar('description', { length: 255 }),
     ...timpeStamps
 });
 
@@ -201,7 +201,7 @@ export const subjects = pgTable('subjects', {
     departmentId: integer('department_id').notNull().references(() => departments.id, { onDelete: 'restrict' }),
     name: varchar('name', { length: 255 }).notNull(),
     code: varchar('code', { length: 50 }).notNull().unique(),
-    description: varchar('name', { length: 255 }),
+    description: varchar('description', { length: 255 }),
     ...timpeStamps
 });
 
@@ -221,8 +221,8 @@ export const subjectsRelation = relations(subjects, ({ one, many }) => ({
 export type Deparment = typeof departments.$inferSelect;
 export type NewDeparment = typeof departments.$inferInsert;
 
-export type Subject = typeof departments.$inferSelect;
-export type NewSubject = typeof departments.$inferInsert;
+export type Subject = typeof subjects.$inferSelect;
+export type NewSubject = typeof subjects.$inferInsert;
 ```
 To start the migration crate a script in the package.json
 ```bash
@@ -235,7 +235,7 @@ To start the migration crate a script in the package.json
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx watch ./src/app.ts",
     "build": "tsc",
-    "start": "node dist/server.js",
+    "start": "node dist/server.ts",
     "db:generate": "drizzle-kit generate --config=src/config/drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config=src/config/drizzle.config.ts",
   },
@@ -281,5 +281,5 @@ VALUES ('ECE', 'Electronics and Communications', 'Circuits, signal proscessing a
 
 INSERT INTO subjects (department_id, code, name, description)
 VALUES 
-  (1, 'CS', 'Data Structures', 'Algorithms, lists and more')
-  (2, 'ECE', 'Signals', 'Analysis of EC signals');
+  (1, 'CS201', 'Data Structures', 'Algorithms, lists and more')
+  (1, 'ECE203', 'Signals', 'Analysis of EC signals');
