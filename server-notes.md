@@ -140,4 +140,146 @@ In order to be able to run this Ts backend application, tsx is needed (the devel
 }
 ```
 
-Now... crate a new repository
+Now... crate a new repository and push it
+
+
+
+## Persistance
+Go to Drizzle's docs.
+
+```bash
+npm i drizzle-orm pg dotenv
+npm i -D drizzle-kit tsx @types/pg
+```
+Inside the .env place the URL from Neon DB you have created 
+
+Go to Neon Docs (check from the 4th point)
+```bash
+npm install drizzle-orm @neondatabase/serverless 
+npm install -D drizzle-kit
+```
+Create a new folder called config, inside a drizzle.config.ts file as follows:
+```tsx
+
+import 'dotenv/config';
+import { defineConfig } from 'drizzle-kit';
+
+if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL is not set in the .env file');
+}
+
+export default defineConfig({
+    schema: '../../src/services/db/schemas/index.ts', // Your schema file path
+    out: './drizzle', // Your migrations folder
+    dialect: 'postgresql',
+    dbCredentials: {
+        url: process.env.DATABASE_URL,
+    },
+});
+```
+Once done, create a folder services, inside a db folder, inside schemas folder and a index.ts file. now inside schemas folder create another index.ts and appEntities.ts. Inside this last, define the schemas for departments and subjets as follows:
+
+```ts
+import { relations } from "drizzle-orm";
+import { integer, pgTable, timestamp, varchar } from "drizzle-orm/pg-core";
+
+const timpeStamps = {
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().$onUpdate(() => new Date()).notNull()
+}
+
+export const departments = pgTable('departments', {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    code: varchar('code', { length: 50 }).notNull().unique(),
+    name: varchar('name', { length: 255 }).notNull(),
+    description: varchar('name', { length: 255 }),
+    ...timpeStamps
+});
+
+export const subjects = pgTable('subjects', {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    departmentId: integer('department_id').notNull().references(() => departments.id, { onDelete: 'restrict' }),
+    name: varchar('name', { length: 255 }).notNull(),
+    code: varchar('code', { length: 50 }).notNull().unique(),
+    description: varchar('name', { length: 255 }),
+    ...timpeStamps
+});
+
+export const departmentRelation = relations(departments, ({ many }) => ({ subjects: many(subjects) }));
+
+export const subjectsRelation = relations(subjects, ({ one, many }) => ({
+    deparment: one(departments, {
+        fields: [subjects.departmentId],
+        references: [departments.id]
+    })
+}));
+
+/**
+ * This uses type inference from database table schemas, the app types always be in sync with the DB
+ * Basically autogen types based on the db schemas so there is no need to define types manually 
+ */
+export type Deparment = typeof departments.$inferSelect;
+export type NewDeparment = typeof departments.$inferInsert;
+
+export type Subject = typeof departments.$inferSelect;
+export type NewSubject = typeof departments.$inferInsert;
+```
+To start the migration crate a script in the package.json
+```bash
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "tsx watch ./src/app.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "db:generate": "drizzle-kit generate --config=src/config/drizzle.config.ts",
+    "db:migrate": "drizzle-kit migrate --config=src/config/drizzle.config.ts",
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.45.2",
+    "express": "^5.2.1",
+    "pg": "^8.21.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.9.1",
+    "@types/pg": "^8.20.0",
+    "drizzle-kit": "^0.31.10",
+    "nodemon": "^3.1.14",
+    "tsx": "^4.22.3",
+    "typescript": "^6.0.3"
+  }
+}
+```
+Open up the index.ts inside the schema folder and add inside:
+```tsx
+export * from './appEntities'
+```
+Now run `npm run db:generate` in your terminal, this should create the migration file. 
+```bash
+npm run db:generate
+```
+For run the SQL migration within neon NEON DB:
+```bash
+npm run db:migrate
+```
+
+
+
+INSERT INTO departments (code, name, description)
+VALUES ('ECE', 'Electronics and Communications', 'Circuits, signal proscessing and telecom');
+
+INSERT INTO subjects (department_id, code, name, description)
+VALUES 
+  (1, 'CS', 'Data Structures', 'Algorithms, lists and more')
+  (2, 'ECE', 'Signals', 'Analysis of EC signals');
