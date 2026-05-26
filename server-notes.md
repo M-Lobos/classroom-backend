@@ -235,7 +235,7 @@ To start the migration crate a script in the package.json
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx watch ./src/app.ts",
     "build": "tsc",
-    "start": "node dist/server.ts",
+    "start": "node dist/app.js",
     "db:generate": "drizzle-kit generate --config=src/config/drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config=src/config/drizzle.config.ts",
   },
