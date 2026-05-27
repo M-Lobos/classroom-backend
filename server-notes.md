@@ -14,7 +14,7 @@ Change the type from commonjs to module in the package.json file and install exp
   "name": "server",
   "version": "1.0.0",
   "description": "",
-  "main": "app.s",
+  "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

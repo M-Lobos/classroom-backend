@@ -33,7 +33,7 @@ router.get("/", async (req, res) => {
         //same as above for departments
         if (department) {
             //to avoid SQL inyection
-            const deptPattern = `%${String(department).replace(/[%_]/g, '\\$&')}%`;
+            const deptPattern = `%${String(department).replace(/[\\%_]/g, '\\$&')}%`;;
             filterConditions.push(ilike(departments.name, deptPattern));
         }
 
