@@ -8,7 +8,7 @@ const PORT = process.env.PORT;
 //cors middleware (mandar a una carpeta de middlewares)
 
 if (!process.env.FRONTEND_URL) {
-    throw new Error('FRONTEN_URL is NOT set in the .env file');
+    throw new Error('FRONTEND_URL is NOT set in the .env file');
 }
 
 app.use(cors({
