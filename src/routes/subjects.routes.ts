@@ -12,8 +12,8 @@ router.get("/", async (req, res) => {
         //here the props for the front for filtering where be processed. Drestructure them from query
         const { search, department, page = 1, limit = 10 } = req.query;
 
-        const curretPage = Math.max(1, + page);
-        const limitPerPage = Math.max(1, +limit);
+        const curretPage = Math.max(1, parseInt(String(page), 10) || 1);
+        const limitPerPage = Math.min(Math.max(1, parseInt(String(limit), 10) || 10), 100);
         // How many records to skip to get to the next page
         const offset = (curretPage - 1) * limitPerPage;
 
@@ -32,7 +32,9 @@ router.get("/", async (req, res) => {
 
         //same as above for departments
         if (department) {
-            filterConditions.push(ilike(departments.name, `%${department}%`))
+            //to avoid SQL inyection
+            const deptPattern = `%${String(department).replace(/[%_]/g, '\\$&')}%`;
+            filterConditions.push(ilike(departments.name, deptPattern));
         }
 
         //combine filters using AND if any exisits => whereClause
@@ -71,7 +73,7 @@ router.get("/", async (req, res) => {
     } catch (error) {
         console.error(`GET /subjects error: ${error}`)
         res.status(500).json({
-            error: 'Fail to get subjets'
+            error: 'Fail to get subjects'
         })
     }
 })
