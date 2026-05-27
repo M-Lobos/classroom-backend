@@ -14,7 +14,7 @@ Change the type from commonjs to module in the package.json file and install exp
   "name": "server",
   "version": "1.0.0",
   "description": "",
-  "main": "app.js",
+  "main": "app.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -235,7 +235,7 @@ To start the migration crate a script in the package.json
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx watch ./src/app.ts",
     "build": "tsc",
-    "start": "node dist/server.ts",
+    "start": "node dist/app.js",
     "db:generate": "drizzle-kit generate --config=src/config/drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config=src/config/drizzle.config.ts",
   },
@@ -273,8 +273,7 @@ For run the SQL migration within neon NEON DB:
 ```bash
 npm run db:migrate
 ```
-
-
+## Insert some data via Neon DB
 
 INSERT INTO departments (code, name, description)
 VALUES ('ECE', 'Electronics and Communications', 'Circuits, signal proscessing and telecom');
@@ -283,3 +282,141 @@ INSERT INTO subjects (department_id, code, name, description)
 VALUES 
   (1, 'CS201', 'Data Structures', 'Algorithms, lists and more')
   (1, 'ECE203', 'Signals', 'Analysis of EC signals');
+
+## Routing
+
+As in the mentioned last project, create a routes folder inside src, and then a file called subjects.routes.ts within. 
+
+Define pagination and filters comming from the front. Notice the use of `or`, `and`, and `ilike` operators from `Drizzle ORM` to craete the `whereclause`
+
+Use the `sql` operator from `Drizzle ORM`, wich allows you to run navite SQL queries. For the leftJoin to work, also import the `eq` operator from `Drizzle ORM`
+
+```ts
+import express from 'express';
+import { departments, subjects } from '../services/db/schemas';
+import { and, desc, eq, getTableColumns, ilike, or, sql } from 'drizzle-orm';
+import { db } from '../services/db';
+
+const router = express.Router();
+
+//GET ALL ROUTES
+router.get("/", async (req, res) => {
+    try {
+
+        //here the props for the front for filtering where be processed. Drestructure them from query
+        const { search, department, page = 1, limit = 10 } = req.query;
+
+        const curretPage = Math.max(1, + page);
+        const limitPerPage = Math.max(1, +limit);
+        // How many records to skip to get to the next page
+        const offset = (curretPage - 1) * limitPerPage;
+
+        //array to store the filtering conditions, empty by default.
+        const filterConditions = [];
+
+        // If a search query exists, filte by name OR subject code
+        if (search) {
+            filterConditions.push(
+                or(
+                    ilike(subjects.name, `%${search}%`),
+                    ilike(subjects.code, `%${search}%`),
+                )
+            );
+        }
+
+        //same as above for departments
+        if (department) {
+            filterConditions.push(ilike(departments.name, `%${department}%`))
+        }
+
+        //combine filters using AND if any exisits => whereClause
+        const whereClause = filterConditions.length > 0 ? and(...filterConditions) : undefined;
+
+        const countResult = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(subjects)
+            .leftJoin(departments, eq(subjects.departmentId, departments.id)) //returns all from the left table matching the rows from the right one
+            .where(whereClause);
+
+        const totalCount = countResult[0]?.count ?? 0;
+
+        //Query the data
+        const subjectlist = await db
+            .select({
+                ...getTableColumns(subjects),
+                department: { ...getTableColumns(departments) }
+            }).from(subjects).leftJoin(departments, eq(subjects.departmentId, departments.id))
+            .where(whereClause)
+            .orderBy(desc(subjects.createdAt))
+            .limit(limitPerPage)
+            .offset(offset);
+
+        //return res
+        res.status(200).json({
+            data: subjectlist,
+            pagination: {
+                page: curretPage,
+                limit: limitPerPage,
+                total: totalCount,
+                totalPages: Math.ceil(totalCount / limitPerPage)
+            }
+        })
+
+    } catch (error) {
+        console.error(`GET /subjects error: ${error}`)
+        res.status(500).json({
+            error: 'Fail to get subjets'
+        })
+    }
+})
+
+export default router
+
+```
+later on, this will be modularized in two separated responsabilities, as controllers and routes. For now, lets deal with cors in order to conect the front end with the backend. 
+
+```bash
+npm i cors
+npm i --save-dev @types/cors
+```
+
+Done that, in the `.env` file define a FRONTEND_URL variable
+```txt
+PORT = 3000
+DATABASE_URL=postgresql://neondb_owner:************npg_jHDmEP4Mx7QA@ep************-winter-mountain-ap58llao-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+
+FRONTEND_URL='http://localhost:5173'
+```
+
+Initialize `cors` in the `app.ts` file
+```ts
+import express from 'express';
+import subjectRouter from './routes/subjects.routes'
+import cors from 'cors'
+
+const app = express();
+const PORT = process.env.PORT;
+
+//cors middleware (mandar a una carpeta de middlewares)
+app.use(cors({
+    origin: process.env.FRONTEND_URL,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true,
+}))
+
+//middleware for json forms and multiformat
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.use('/api/subjects', subjectRouter)
+
+app.get('/', (req, res) => {
+    res.send('Welcome, API running')
+})
+
+//mandar a services
+app.listen(PORT, () => {
+    console.log(`server running at http://localhost:${PORT}`);
+});
+```
+
