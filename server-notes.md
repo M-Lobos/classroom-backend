@@ -421,4 +421,260 @@ app.listen(PORT, () => {
     console.log(`server running at http://localhost:${PORT}`);
 });
 ```
+## Authentication with Better Auth
+Better Auth is a framework-agnostic, universal authentication and authorization framework for TypeScript.
 
+To better understanding about the schema look at the [core-schema](https://better-auth.com/docs/concepts/database#core-schema) section on Better Auth documentation. Here is where to find the details for tables as:
+* User          -> Manages if user is teacher or student 
+* Session       -> Tracks connection device
+* Account       -> How does they log in (password? google?)
+* Verification  -> Password resets and email links
+
+Go to src/services/db/schema folder and create a new file called auth.ts:
+
+```ts
+import { pgTable, text, timestamp, boolean, pgEnum, index } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
+
+export const roleEnum = pgEnum("role", ["student", "teacher", "admin"]);
+
+const timestamps = {
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().$onUpdate(() => new Date()).notNull()
+}
+
+export const user = pgTable("user", {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    email: text("email").notNull().unique(),
+    emailVerified: boolean("email_verified").notNull(),
+    image: text("image"),
+    role: roleEnum("role").default("student").notNull(),
+    imageCldPubId: text("image_cld_pub_id"),
+    ...timestamps
+});
+
+export const session = pgTable("session", {
+    id: text("id").primaryKey(),
+    expiresAt: timestamp("expires_at").notNull(),
+    token: text("token").notNull().unique(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().$onUpdate(() => new Date()).notNull(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    userId: text("user_id").notNull().references(() => user.id, { onDelete: 'cascade' }),
+}, (table) => [
+    index("session_user_id_idx").on(table.userId),
+]);
+
+export const account = pgTable("account", {
+    id: text("id").primaryKey(),
+    accountId: text("account_id").notNull(),
+    providerId: text("provider_id").notNull(),
+    userId: text("user_id").notNull().references(() => user.id, { onDelete: 'cascade' }),
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    idToken: text("id_token"),
+    accessTokenExpiresAt: timestamp("access_token_expires_at"),
+    refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
+    scope: text("scope"),
+    password: text("password"),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().$onUpdate(() => new Date()).notNull(),
+}, (table) => [
+    index("account_user_id_idx").on(table.userId),
+]);
+
+export const verification = pgTable("verification", {
+    id: text("id").primaryKey(),
+    identifier: text("identifier").notNull(),
+    value: text("value").notNull(),
+    expiresAt: timestamp("expires_at").notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().$onUpdate(() => new Date()).notNull(),
+}, (table) => [
+    index("verification_identifier_idx").on(table.identifier),
+]);
+
+export const userRelations = relations(user, ({ many }) => ({
+    sessions: many(session),
+    accounts: many(account),
+}));
+
+export const sessionRelations = relations(session, ({ one }) => ({
+    user: one(user, {
+        fields: [session.userId],
+        references: [user.id],
+    }),
+}));
+
+export const accountRelations = relations(account, ({ one }) => ({
+    user: one(user, {
+        fields: [account.userId],
+        references: [user.id],
+    }),
+}));
+
+export type User = typeof user.$inferSelect;
+export type NewUser = typeof user.$inferInsert;
+
+export type Session = typeof session.$inferSelect;
+export type NewSession = typeof session.$inferInsert;
+
+export type Account = typeof account.$inferSelect;
+export type NewAccount = typeof account.$inferInsert;
+
+export type Verification = typeof verification.$inferSelect;
+export type NewVerification = typeof verification.$inferInsert;
+``` 
+Now go to schemas/appEntities.ts and update the file by considering the classes and enrollments tables
+```ts
+import {
+    integer,
+    jsonb,
+    pgEnum,
+    pgTable,
+    text,
+    timestamp,
+    unique,
+    varchar,
+    index,
+    primaryKey
+} from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
+import { user } from "./auth.js";
+
+export const classStatusEnum = pgEnum('class_status', ['active', 'inactive', 'archived']);
+
+const timestamps = {
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().$onUpdate(() => new Date()).notNull()
+}
+
+export const departments = pgTable('departments', {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    code: varchar('code', { length: 50 }).notNull().unique(),
+    name: varchar('name', { length: 255 }).notNull(),
+    description: varchar('description', { length: 255 }),
+    ...timestamps
+});
+
+export const subjects = pgTable('subjects', {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    departmentId: integer('department_id').notNull().references(() => departments.id, { onDelete: 'restrict' }),
+    name: varchar('name', { length: 255 }).notNull(),
+    code: varchar('code', { length: 50 }).notNull().unique(),
+    description: varchar('description', { length: 255 }),
+    ...timestamps
+});
+
+export const classes = pgTable('classes', {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    subjectId: integer('subject_id').notNull().references(() => subjects.id, { onDelete: 'cascade' }),
+    teacherId: text('teacher_id').notNull().references(() => user.id, { onDelete: 'restrict' }),
+    inviteCode: text('invite_code').notNull().unique(),
+    name: varchar('name', { length: 255 }).notNull(),
+    bannerCldPubId: text('banner_cld_pub_id'),
+    bannerUrl: text('banner_url'),
+    description: text('description'),
+    capacity: integer('capacity').default(50).notNull(),
+    status: classStatusEnum('status').default('active').notNull(),
+    schedules: jsonb('schedules').$type<any[]>().default([]).notNull(),
+    ...timestamps
+}, (table) => [
+    index('classes_subject_id_idx').on(table.subjectId),
+    index('classes_teacher_id_idx').on(table.teacherId),
+]);
+
+export const enrollments = pgTable('enrollments', {
+    studentId: text('student_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+    classId: integer('class_id').notNull().references(() => classes.id, { onDelete: 'cascade' }),
+}, (table) => [
+    primaryKey({ columns: [table.studentId, table.classId] }),
+    unique('enrollments_student_id_class_id_unique').on(table.studentId, table.classId),
+    index('enrollments_student_id_idx').on(table.studentId),
+    index('enrollments_class_id_idx').on(table.classId),
+]);
+
+//relations
+
+export const departmentRelations = relations(departments, ({ many }) => ({ subjects: many(subjects) }));
+
+export const subjectsRelations = relations(subjects, ({ one, many }) => ({
+    department: one(departments, {
+        fields: [subjects.departmentId],
+        references: [departments.id],
+    }),
+    classes: many(classes)
+}));
+
+export const classesRelations = relations(classes, ({ one, many }) => ({
+    subject: one(subjects, {
+        fields: [classes.subjectId],
+        references: [subjects.id],
+    }),
+    teacher: one(user, {
+        fields: [classes.teacherId],
+        references: [user.id],
+    }),
+    enrollments: many(enrollments)
+}));
+
+export const enrollmentsRelations = relations(enrollments, ({ one }) => ({
+    student: one(user, {
+        fields: [enrollments.studentId],
+        references: [user.id],
+    }),
+    class: one(classes, {
+        fields: [enrollments.classId],
+        references: [classes.id],
+    }),
+}));
+
+/**
+ * This uses type inference from database table schemas, the app types always be in sync with the DB
+ * Basically autogen types based on the db schemas so there is no need to define types manually 
+ */
+export type Deparment = typeof departments.$inferSelect;
+export type NewDeparment = typeof departments.$inferInsert;
+
+export type Subject = typeof subjects.$inferSelect;
+export type NewSubject = typeof subjects.$inferInsert;
+
+export type Class = typeof classes.$inferSelect;
+export type NewClass = typeof classes.$inferInsert;
+
+export type Enrollment = typeof enrollments.$inferSelect;
+export type NewEnrollment = typeof enrollments.$inferInsert;
+```
+
+Do not forget the exports, so no go to the index.ts inside schema folder and export the auth.js from there as with appEntities.ts:
+```ts
+export * from './appEntities'
+export * from './auth'
+```
+
+Now to generate the SQL for the latest schema created, run on terminal:
+```bash
+npm pwd #always check your working directory
+npm cd server
+npm run db:generate
+```
+You should see a summary in your terminal about the tables generated, and that the SQL migration file is ready in the drizzle folder. Then migrate them:
+
+```bash
+clear
+npm run db:migrate
+```
+Done this, lets push it to github, open a new terminal and be sure to be on the server folder
+```bash
+pwd
+cd server
+git status
+```
+Should be on main... if so, create a new branch called feat/database-schemas-2 (if not, go to main, and creathe the branch)
+```bash
+git checkout -b feat/database-schemas-2
+git add . 
+git commit -m "ft:"
+```
