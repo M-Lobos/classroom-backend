@@ -676,5 +676,7 @@ Should be on main... if so, create a new branch called feat/database-schemas-2 (
 ```bash
 git checkout -b feat/database-schemas-2
 git add . 
-git commit -m "ft:"
+git commit -m "ft: "
+git push
 ```
+## Security 
