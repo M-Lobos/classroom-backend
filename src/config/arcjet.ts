@@ -1,9 +1,10 @@
-import arcjet, { shield, detectBot, slidingWindow, tokenBucket } from "@arcjet/node";
+import arcjet, { shield, detectBot, slidingWindow } from "@arcjet/node";
 /* import { isSpoofedBot } from "@arcjet/inspect";
  */
 
-if (!process.env.ARCJET_KEY && process.env.ARCJET_ENV !== 'test') {
-    throw new Error('ARCJECT_KEY is required');
+const isTestEnv = process.env.NODE_ENV === "test";
+if (!process.env.ARCJET_KEY && !isTestEnv) {
+    throw new Error("ARCJET_KEY is required");
 }
 
 const aj = arcjet({
