@@ -679,4 +679,279 @@ git add .
 git commit -m "ft: "
 git push
 ```
-## Security 
+## Security with Arcjet middleware
+To ensure the app is secure, like production ready secure, thus security should be a core feature in any app. Consider that any route defined implies a "door" to enter the app, if not locked and secure, they are vulnerable to be breached. In order to address this issue, a security layer is needed (for both, front and back).
+
+Arcjet is a security-as-code platform that allows to implement robust security and protection: 
+* bot detection
+* rate limiting
+* email validation
+
+With Arcjet, is just as simple as import the SKD and define the rules. Go to [Arcjet](https://arcjet.com/), create your account and in Personal, create a new site, name it, copy the arcjet_key and past it in your .envfile, also create a new envirorment variable called ARCJET = development (later on this will be switch it to production).
+
+To install the Arcjet SDK select Manual Install and select the card Node.js + Express and follow the instrucctions 
+(The second step is setting the env variable, already done)
+
+```bash
+pwd #always check where are you standing in your project
+cd server 
+npm i @arcjet/node @arcjet/inspect
+```
+In the 3rd step there is an example included so just copy this part of the example provided (the part with the rule definition)
+```ts
+const aj = arcjet({
+  // Get your site key from https://app.arcjet.com and set it as an environment
+  // variable rather than hard coding.
+  key: process.env.ARCJET_KEY,
+  rules: [
+    // Shield protects your app from common attacks e.g. SQL injection
+    shield({ mode: "LIVE" }),
+    // Create a bot detection rule
+    detectBot({
+      mode: "LIVE", // Blocks requests. Use "DRY_RUN" to log only
+      // Block all bots except the following
+      allow: [
+        "CATEGORY:SEARCH_ENGINE", // Google, Bing, etc
+        // Uncomment to allow these other common bot categories
+        // See the full list at https://arcjet.com/bot-list
+        //"CATEGORY:MONITOR", // Uptime monitoring services
+        //"CATEGORY:PREVIEW", // Link previews e.g. Slack, Discord
+      ],
+    }),
+    // Create a token bucket rate limit. Other algorithms are supported.
+    tokenBucket({
+      mode: "LIVE",
+      // Tracked by IP address by default, but this can be customized
+      // See https://docs.arcjet.com/fingerprints
+      //characteristics: ["ip.src"],
+      refillRate: 5, // Refill 5 tokens per interval
+      interval: 10, // Refill every 10 seconds
+      capacity: 10, // Bucket capacity of 10 tokens
+    }),
+  ],
+});
+```
+Arcjet suggest you to place it at your index.ts (the app.ts in the current project), but in order to keep the app.ts file clean, place this in some other file inside config folder and import it, wouldn't be a bad idea.
+
+Arcjet uses a token Bucket method as a rule to deal with the rate limit by default, this rule would be replaced by a sliding window method. 
+
+
+**Securing end-points**
+
+```ts
+import arcjet, { shield, detectBot, slidingWindow, tokenBucket } from "@arcjet/node";
+/* import { isSpoofedBot } from "@arcjet/inspect";*/
+
+if (!process.env.ARCJET_KEY && process.env.ARCJET_ENV !== 'test') {
+    throw new Error('ARCJECT_KEY is required');
+}
+
+const aj = arcjet({
+    // variable rather than hard coding.
+    key: process.env.ARCJET_KEY!,
+    rules: [
+        // Shield protects your app from common attacks e.g. SQL injection
+        shield({ mode: "LIVE" }),
+        // Create a bot detection rule
+        detectBot({
+            mode: "LIVE", // Blocks requests. Use "DRY_RUN" to log only
+            // Block all bots except the following
+            allow: [
+                "CATEGORY:SEARCH_ENGINE", // Google, Bing, etc
+                // Uncomment to allow these other common bot categories
+                // See the full list at https://arcjet.com/bot-list
+                //"CATEGORY:MONITOR", // Uptime monitoring services
+                "CATEGORY:PREVIEW"
+            ],
+        }),
+        // Create a slidingWindow rate limit. Other algorithms are supported.
+        slidingWindow({
+            mode: 'LIVE',
+            interval: '2s', //refills every 2 secs
+            max: 5, //max of 5 requests per interval (2 secs)
+        })
+    ],
+});
+
+export default aj;
+```
+## authMiddleware
+Now address the src directory again,  and create a new file express.d.ts whitin. This file will declare the user role for each request. It will be set by the authentication middleware later on. And also create another new file called type.d.ts where we will create the types for the users-role-
+
+```bash
+pwd
+cd src
+touch express.d.ts
+touch type.d.ts
+```
+
+```ts
+//express.d.ts file
+declare global {
+    namespace Express {
+        interface Request {
+            user?: {
+                role?: "admin" | "teacher" | "student";
+            }
+        }
+    }
+}
+
+export { };
+```
+```ts
+//type.d.ts file
+declare global {
+    namespace Express {
+        interface Request {
+            user?: {
+                role?: "admin" | "teacher" | "student";
+            }
+        }
+    }
+}
+
+export { };
+```
+
+
+Now back craete a new folder inside src called, middleware, whitin create a new file called security.
+
+```bash
+pwd
+mkdir middlewares
+cd middelwares
+touch security.ts
+code security.ts
+```
+Create a new middleware called securityMiddleware 
+```ts
+import { Request, Response, NextFunction } from "express";
+import aj from "../config/arcjet";
+import { ArcjetNodeRequest, slidingWindow } from "@arcjet/node";
+
+
+const securityMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+    if (process.env.NODE_ENV === 'test') return next();
+
+    try {
+        const role: RateLimitRole = req.user?.role ?? 'guest'; //we set this rateLimitRole, to place ratelimit per rol
+
+        let limit: number;
+        let message: string;
+
+        switch (role) {
+            case 'admin':
+                limit = 20;
+                message = 'Admin request limit exceeded (20 per minute). Slow down';
+                break;
+            case 'teacher':
+            case 'student':
+                limit = 10;
+                message = 'User request limit exceeded (10 per minute). Please wait';
+                break;
+            default:
+                limit = 3;
+                message = 'Guest request limit exceeded (3 per minute). Please sigh up for higher limits';
+                break;
+        }
+
+        const client = aj.withRule(
+            slidingWindow({
+                mode: 'LIVE',
+                interval: '60s',
+                max: limit, // this way is dynamic depending on the user role.
+            })
+        )
+
+        //now intercept the request.
+        const ArcjetRequest: ArcjetNodeRequest = {
+            headers: req.headers,
+            method: req.method,
+            url: req.originalUrl ?? req.url,
+            socket: {
+                remoteAddress: req.socket.remoteAddress ?? req.ip ?? '0.0.0.0' //0.0.0.0 is default
+            },
+        }
+
+        //now with the client and the arcjetRequest, comes the decision from Arcjet based on the parameters defined above.
+        const decision = await client.protect(ArcjetRequest);
+
+        //clauses depending on the decision outcome
+        if (decision.isDenied() && decision.reason.isBot()) {
+            return res.status(403).json({
+                error: 'Forbidden',
+                message: 'Automated request are not allowed. '
+            });
+        }
+
+        if (decision.isDenied() && decision.reason.isShield()) {
+            return res.status(403).json({
+                error: 'Forbidden',
+                message: 'Request blocked by security policy. '
+            });
+        }
+
+        if (decision.isDenied() && decision.reason.isRateLimit()) {
+            return res.status(403).json({
+                error: 'To many requests',
+                message //this message comes from the top, from RatelimitRate, dependint on wich role the user is authenticated with
+            });
+        }
+
+        next()
+    } catch (error) {
+        console.error('Arcjet middleware error: ', error)
+        res.status(500).json({ error: 'Internal server error', message: 'Something went wrong with security middleware' })
+    }
+}
+
+export default securityMiddleware;
+```
+Now, invoke this middleware in the app.ts just below the json middleware, and before the routes.
+```ts
+import express from 'express';
+import subjectRouter from './routes/subjects.routes'
+import cors from 'cors'
+import securityMiddleware from './middlewares/security'; // <- middleware imported
+
+const app = express();
+const PORT = process.env.PORT;
+
+//cors middleware (mandar a una carpeta de middlewares)
+if (!process.env.FRONTEND_URL) {
+    throw new Error('FRONTEND_URL is NOT set in the .env file');
+}
+app.use(cors({
+    origin: process.env.FRONTEND_URL,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true,
+}))
+
+//middleware for json forms and multiformat
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.use(securityMiddleware);    // <- middleware added
+
+app.use('/api/subjects', subjectRouter)
+
+app.get('/', (req, res) => {
+    res.send('Welcome, API running')
+})
+
+//mandar a services
+app.listen(PORT, () => {
+    console.log(`server running at http://localhost:${PORT}`);
+});
+
+```
+Push this implementation to a new branch on github
+```bash
+pwd 
+cd server
+git checkout #check the branch you are currently working
+git checkout -b feat/security-with-arcjet
+git add . 
+
+``` 
