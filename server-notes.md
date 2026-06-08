@@ -953,5 +953,6 @@ cd server
 git checkout #check the branch you are currently working
 git checkout -b feat/security-with-arcjet
 git add . 
-
+git commit -m "ft: Security middleware from arcjet implemented"
+git push --set-upstream origin feat/security-with-arcjet
 ``` 
