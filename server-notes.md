@@ -1109,10 +1109,10 @@ What is the earning here. Saving the effor to writte JWT, handle token validatio
 Lets test it. Copy this json. 
 ```json
     {
-        "name": "Teacher John Doe", // required
-        "email": "john.doe@teacher.com", // required
+        "name": "John Doe", // required
+        "email": "john.doe@student.com", // required
         "password": "password1234", // required
-        "rol": "teacher"
+        "rol": "student"
     }
 ```
 Open Postman or any other APIclient you use. Now use this `localhost:3003/api/auth/sign-up/email` url with the POST method, select body, set it to raw and json, copy the json above and click on send. 
@@ -1122,8 +1122,8 @@ If everything its ok you should get an ok and status 200, with an response like 
 {
     "token": "<redacted-session-token>",
     "user": {
-        "name": "Teacher John Doe",
-        "email": "john.doe@teacher.com",
+        "name": "John Doe",
+        "email": "john.doe@student.com",
         "emailVerified": false,
         "image": null,
         "createdAt": "2026-06-12T01:23:15.676Z",
