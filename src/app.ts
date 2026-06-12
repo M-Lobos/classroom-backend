@@ -2,6 +2,8 @@ import express from 'express';
 import subjectRouter from './routes/subjects.routes'
 import cors from 'cors'
 import securityMiddleware from './middlewares/security';
+import { toNodeHandler } from 'better-auth/node';
+import { auth } from './utils/auth';
 
 const app = express();
 const PORT = process.env.PORT;
@@ -15,6 +17,8 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
 }))
+
+app.all('/api/auth/*splat', toNodeHandler(auth));
 
 //middleware for json forms and multiformat
 app.use(express.json());

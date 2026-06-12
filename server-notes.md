@@ -956,3 +956,182 @@ git add .
 git commit -m "ft: Security middleware from arcjet implemented"
 git push --set-upstream origin feat/security-with-arcjet
 ``` 
+## Displaying errors in the frontend side
+This way, when users are being rate limited, they can know what is actually happening.
+
+Go back to the client folfer project, and adress the data provider inside src
+
+## Better auth 
+
+Address the [better Auth](https://better-auth.com/docs/installation) installation page. 
+
+```bash
+pwd 
+cd server
+npm install better-auth
+```
+Follow the steps and copy the env variable, then create a new Better Auth instance, to do so, you may follow the suggestion made in the docs and create a new folder called utils and inside a new file called auth.ts
+
+```bash
+pwd 
+cd src
+mkdir utils
+cd utils
+touch auth.ts
+code auth.ts
+```
+And start the instance as:
+```ts
+import { betterAuth } from "better-auth";
+
+export const auth = betterAuth({
+    //...
+});
+```
+Then, the next step is to configure the postgreSQL DB and the Drizzle ORM
+
+```ts
+import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { db } from "../services/db/index"; // your drizzle instance
+
+export const auth = betterAuth({
+    database: drizzleAdapter(db, {
+        provider: "pg", // or "mysql", "sqlite"
+    }),
+});
+```
+Notice in this case the db tables have been already created, so the only authentications needed to set up are the email and password authentication methods whitin this file.
+
+```ts
+import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { db } from "../services/db/index"; // your drizzle instance
+
+export const auth = betterAuth({
+    database: drizzleAdapter(db, {
+        provider: "pg", // or "mysql", "sqlite"
+    }),
+    emailAndPassword:{
+        enabled:true,
+        
+    }
+});
+```
+
+In step 7 on docs says *"To handle API requests, you need to set up a route handler on your server."* Be sure to select propelly the express tab and read the disclamer, and copy the route.
+
+Notice that the docs mention the use of {*any} as a wildcard, but if look out the [Express 5 docs](https://expressjs.com/en/guide/migrating-5/#reqparams) at the req.params, it says that the correct way is using `/*splat` (matching everypath without the rootpath) instead.
+
+Set then the app.ts file as it follows:
+
+```ts
+import express from 'express';
+import subjectRouter from './routes/subjects.routes'
+import cors from 'cors'
+import securityMiddleware from './middlewares/security';
+import { toNodeHandler } from 'better-auth/node';
+import { auth } from './utils/auth';
+
+const app = express();
+const PORT = process.env.PORT;
+
+//cors middleware (mandar a una carpeta de middlewares)
+if (!process.env.FRONTEND_URL) {
+    throw new Error('FRONTEND_URL is NOT set in the .env file');
+}
+app.use(cors({
+    origin: process.env.FRONTEND_URL,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true,
+}))
+
+app.all('/api/auth/*splat', toNodeHandler(auth));
+
+//middleware for json forms and multiformat
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.use(securityMiddleware);
+
+app.use('/api/subjects', subjectRouter)
+
+app.get('/', (req, res) => {
+    res.send('Welcome, API running')
+})
+
+//mandar a services
+app.listen(PORT, () => {
+    console.log(`server running at http://localhost:${PORT}`);
+});
+```
+At this point, the minimum setup for better auth is ready, but still missing the mention of the two custom field added to the user table (such as role and cloudinary ID). This way better auth will refer to auth.ts tables and add users. So go to auth.ts within the utils folder to configure it further.
+
+Also, dont forget to import and define the schema from auth.ts from the schemas folder inside db folder. Otherwise it wont know these users actually exists.
+
+```ts
+import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { db } from "../services/db/index"; // your drizzle instance
+import * as schema from "../services/db/schemas/auth"
+
+export const auth = betterAuth({
+    secret: process.env.BETTER_AUTH_SECRET!,
+    trustedOrigins: [process.env.FRONTEND_URL!],
+    database: drizzleAdapter(db, {
+        provider: "pg", // or "mysql", "sqlite"
+        schema: schema  // define the schema
+    }),
+    emailAndPassword: {
+        enabled: true,
+
+    },
+    //CUSTOM FIELDS ADDED TO THE USER OBJECT
+    user: {
+        additionalFields: {
+            role: {
+                type: 'string',
+                required: true,
+                defaultValue: 'student',
+                input: true,                //allows the role to be setted during registration
+            },
+            imageCldPubID: {
+                type: 'string',
+                required: false,            //Not necesary to put a image
+                input: true,                //allows the role to be setted during registration
+            }
+        }
+    }
+});
+```
+What is the earning here. Saving the effor to writte JWT, handle token validations or handle sesions. Better auth do that.
+
+Lets test it. Copy this json. 
+```json
+    {
+        "name": "Teacher John Doe", // required
+        "email": "john.doe@teacher.com", // required
+        "password": "password1234", // required
+        "rol": "teacher"
+    }
+```
+Open Postman or any other APIclient you use. Now use this `localhost:3003/api/auth/sign-up/email` url with the POST method, select body, set it to raw and json, copy the json above and click on send. 
+
+If everything its ok you should get an ok and status 200, with an response like this
+```json
+{
+    "token": "6RDNlvxzixMc8cLl56qnsMklY7fD345L",
+    "user": {
+        "name": "Teacher John Doe",
+        "email": "john.doe@teacher.com",
+        "emailVerified": false,
+        "image": null,
+        "createdAt": "2026-06-12T01:23:15.676Z",
+        "updatedAt": "2026-06-12T01:23:15.676Z",
+        "role": "student",
+        "id": "auH4uMKuoWfbNrlEYAvYgm5YqByZB1uQ"
+    }
+}
+``` 
+
+You can go to neonDB and confirme that, actually the Teacher Jhon Doe is now in the database
