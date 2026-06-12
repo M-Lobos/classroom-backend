@@ -1095,7 +1095,7 @@ export const auth = betterAuth({
                 defaultValue: 'student',
                 input: true,                //allows the role to be setted during registration
             },
-            imageCldPubID: {
+            imageCldPubId: {
                 type: 'string',
                 required: false,            //Not necesary to put a image
                 input: true,                //allows the role to be setted during registration
@@ -1120,7 +1120,7 @@ Open Postman or any other APIclient you use. Now use this `localhost:3003/api/au
 If everything its ok you should get an ok and status 200, with an response like this
 ```json
 {
-    "token": "6RDNlvxzixMc8cLl56qnsMklY7fD345L",
+    "token": "<redacted-session-token>",
     "user": {
         "name": "Teacher John Doe",
         "email": "john.doe@teacher.com",
