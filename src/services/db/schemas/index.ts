@@ -1,2 +1,2 @@
-export * from './appEntities'
-export * from './auth'
+export * from './appEntities.js'
+export * from './auth.js'
