@@ -1,3 +1,6 @@
+import AgentAPI from 'apminsight';
+AgentAPI.config();
+
 import express from 'express';
 import subjectRouter from './routes/subjects.routes'
 import cors from 'cors'
@@ -12,6 +15,7 @@ const PORT = process.env.PORT;
 if (!process.env.FRONTEND_URL) {
     throw new Error('FRONTEND_URL is NOT set in the .env file');
 }
+
 app.use(cors({
     origin: process.env.FRONTEND_URL,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],

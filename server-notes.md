@@ -1135,3 +1135,85 @@ If everything its ok you should get an ok and status 200, with an response like 
 ``` 
 
 You can go to neonDB and confirme that, actually the Teacher Jhon Doe is now in the database
+
+## Site 24/7, Application Performance Monitoring (APM)
+Building an application is just half the job, users ussually "brake it" doing stuff you didn't plan, so monitoring in production is the other half:
+* Performance Visibility
+* Error tracking 
+* Dependency Monitoring
+* Resource usage
+* Code-level insigth
+
+Here is where APM come in, like 24/7, wich monitores:
+* web services
+* Servers
+* cloud infrastructure
+* APIs
+* Applications 
+
+(free trial of 30 days)
+
+In the terminal type as comes for the package that will help to monitor the app's performance
+```bash
+pwd
+cd server
+npm install apminsight --save
+```
+Now in the root folder (server) create a new file called apminsightnode.json. Then go to your [24/7 panel](https://www.site24x7.com/app/client#/home/getting-started/add-options) and scroll down (left side) util the admin tab, click it, then go down again and click on to developer, then API key. Click show device key to get the API key. Copy the apy ken and place it whitin the json file you just created.
+
+```json
+{
+    "licenseKey": "<your-licence-here>",
+    "appName": "ClassRoom-backend",
+    "port": 3005
+}
+```
+Now address to the app.ts file, shut down the server (ctrl + c) and add as follow in the top lines of the file:
+```ts
+import AgentAPI from 'apminsight';      // <-- new import
+AgentAPI.config();                      // <-- new instance from apm insgith package
+
+import express from 'express';
+import subjectRouter from './routes/subjects.routes'
+import cors from 'cors'
+import securityMiddleware from './middlewares/security';
+import { toNodeHandler } from 'better-auth/node';
+import { auth } from './utils/auth';
+
+const app = express();
+const PORT = process.env.PORT;
+
+//cors middleware (mandar a una carpeta de middlewares)
+if (!process.env.FRONTEND_URL) {
+    throw new Error('FRONTEND_URL is NOT set in the .env file');
+}
+
+app.use(cors({
+    origin: process.env.FRONTEND_URL,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true,
+}))
+
+app.all('/api/auth/*splat', toNodeHandler(auth));
+
+//middleware for json forms and multiformat
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.use(securityMiddleware);
+
+app.use('/api/subjects', subjectRouter)
+
+app.get('/', (req, res) => {
+    res.send('Welcome, API running')
+})
+
+//mandar a services
+app.listen(PORT, () => {
+    console.log(`server running at http://localhost:${PORT}`);
+});
+
+```
+Run the server again (npm run dev) you should note there is a new folder now, called apminsightdata, whitin there are other two folders; classRoom-backend (the name given to the project) and logs folder. 
+
+lets push changes to github
