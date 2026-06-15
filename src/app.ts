@@ -4,9 +4,9 @@ AgentAPI.config();
 import express from 'express';
 import subjectRouter from './routes/subjects.routes.js'
 import cors from 'cors'
-import securityMiddleware from './middlewares/security';
+import securityMiddleware from './middlewares/security.js';
 import { toNodeHandler } from 'better-auth/node';
-import { auth } from './utils/auth';
+import { auth } from './utils/auth.js';
 
 const app = express();
 const PORT = process.env.PORT;
