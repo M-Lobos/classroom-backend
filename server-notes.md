@@ -1217,3 +1217,13 @@ app.listen(PORT, () => {
 Run the server again (npm run dev) you should note there is a new folder now, called apminsightdata, whitin there are other two folders; classRoom-backend (the name given to the project) and logs folder. 
 
 lets push changes to github
+```bash
+git add . 
+git commit -m "ft: apm services implemented with site24/7"
+git push 
+git status
+```
+Now, to be able to monitor the app, this should be shiped over to production (in other words, deploy it)
+
+## Deploy service
+Create an account on [Railway](https://railway.com) accept thir terms and conditions and link your repo with it, then select the repo where lives the project
