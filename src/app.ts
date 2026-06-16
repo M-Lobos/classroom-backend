@@ -33,7 +33,7 @@ app.use(securityMiddleware);
 app.use('/api/subjects', subjectRouter)
 
 app.get('/', (req, res) => {
-    res.send('Welcome, API running')
+    res.send('Manso pupooo!!! 😻')
 })
 
 //mandar a services
