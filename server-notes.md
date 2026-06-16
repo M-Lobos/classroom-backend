@@ -1227,3 +1227,5 @@ Now, to be able to monitor the app, this should be shiped over to production (in
 
 ## Deploy service
 Create an account on [Railway](https://railway.com) accept thir terms and conditions and link your repo with it, then select the repo where lives the project
+
+Later on, enable RUM to monitoring the frontend as well 

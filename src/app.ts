@@ -3,6 +3,7 @@ AgentAPI.config();
 
 import express from 'express';
 import subjectRouter from './routes/subjects.routes.js'
+import userRoutes from './routes/user.routes.js'
 import cors from 'cors'
 import securityMiddleware from './middlewares/security.js';
 import { toNodeHandler } from 'better-auth/node';
@@ -31,6 +32,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(securityMiddleware);
 
 app.use('/api/subjects', subjectRouter)
+app.use('/api/users', userRoutes)
 
 app.get('/', (req, res) => {
     res.send('Manso pupooo!!! 😻')
