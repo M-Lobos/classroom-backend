@@ -34,10 +34,10 @@ app.use(securityMiddleware);
 
 app.use('/api/subjects', subjectRouter);
 app.use('/api/users', userRoutes);
-app.use('/api/clases', clasesRoutes);
+app.use('/api/classes', clasesRoutes);
 
 app.get('/', (req, res) => {
-    res.send('Manso pupooo!!! 😻')
+    res.send('Api running, welcome!!! 😻')
 })
 
 //mandar a services
