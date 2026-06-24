@@ -36,7 +36,7 @@ app.use('/api/subjects', subjectRouter);
 app.use('/api/users', userRoutes);
 app.use('/api/classes', clasesRoutes);
 
-app.get('/', (req, res) => {
+app.get('/api/', (req, res) => {
     res.send('Api running, welcome!!! 😻')
 })
 
