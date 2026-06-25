@@ -1228,4 +1228,9 @@ Now, to be able to monitor the app, this should be shiped over to production (in
 ## Deploy service
 Create an account on [Railway](https://railway.com) accept thir terms and conditions and link your repo with it, then select the repo where lives the project
 
-GO TO the Frontend project now, enable RUM to monitoring the frontend as well 
+GO TO the Frontend project now, enable RUM to monitoring the frontend as well.
+
+## Connection with the Frontend on production
+Go to [Railway](https://railway.com), enter you account and seek for your backend project on the projects tab. Select the project and open the modal related to it (by clickin on the project card), go to the variables tab and within address the FRONTEND_URL env variable and replace it for the current URL that hosts the frontend in production. Save, and redeploy.
+
+Go back to the client side of the project. 
