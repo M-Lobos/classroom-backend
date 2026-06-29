@@ -157,7 +157,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // List users in a class by role with pagination
-router.get("/:id/users", async (req, res) => {
+router.get("/:id/classes", async (req, res) => {
     try {
         const classId = Number(req.params.id);
         const { role, page = 1, limit = 10 } = req.query;
