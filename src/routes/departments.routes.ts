@@ -13,12 +13,13 @@ import { user } from "../services/db/schemas/auth.js";
 
 const router = express.Router();
 
+// Get all departments with optional search and pagination
 router.get("/", async (req, res) => {
     try {
         const { search, page = 1, limit = 10 } = req.query;
 
-        const currentPage = Math.max(1, +max);
-        const limitPerPage = Math.max(1, +max);
+        const currentPage = Math.max(1, +page);
+        const limitPerPage = Math.max(1, +limit);
         const offset = (currentPage - 1) * limitPerPage;
 
         const filterConditions = [];
@@ -26,8 +27,8 @@ router.get("/", async (req, res) => {
         if (search) {
             filterConditions.push(
                 or(
-                    ilike(departments.name, `%${search}`),
-                    ilike(departments.code, `%${search}`),
+                    ilike(departments.name, `%${search}%`),
+                    ilike(departments.code, `%${search}%`)
                 )
             );
         }
@@ -36,9 +37,9 @@ router.get("/", async (req, res) => {
             filterConditions.length > 0 ? and(...filterConditions) : undefined;
 
         const countResult = await db
-            .select({ count: sql<number> `count(*)` })
+            .select({ count: sql<number>`count(*)` })
             .from(departments)
-            .where(whereClause)
+            .where(whereClause);
 
         const totalCount = countResult[0]?.count ?? 0;
 
@@ -68,7 +69,7 @@ router.get("/", async (req, res) => {
         console.error("GET /departments error:", error);
         res.status(500).json({ error: "Failed to fetch departments" });
     }
-})
+});
 
 router.post("/", async (req, res) => {
     try {
