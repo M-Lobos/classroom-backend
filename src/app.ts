@@ -6,11 +6,12 @@ import subjectRouter from './routes/subjects.routes.js'
 import userRoutes from './routes/user.routes.js'
 import clasesRoutes from './routes/clases.routes.js'
 import departmentRoutes from './routes/departments.routes.js'
+import enrollmentsRoutes from './routes/enrollments.routes.js'
 import cors from 'cors'
 import securityMiddleware from './middlewares/security.js';
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from './utils/auth.js';
-import { enrollments } from './services/db/schemas/appEntities.js';
+
 
 const app = express();
 const PORT = process.env.PORT;
@@ -38,7 +39,7 @@ app.use('/api/subjects', subjectRouter);
 app.use('/api/users', userRoutes);
 app.use('/api/classes', clasesRoutes);
 app.use('/api/departments', departmentRoutes);
-app.use('/api/enrollments', enrollments);
+app.use('/api/enrollments', enrollmentsRoutes);
 
 app.get('/api/', (req, res) => {
     res.send('Api running, welcome!!! 😻')
