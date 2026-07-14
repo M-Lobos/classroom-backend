@@ -29,11 +29,11 @@ export const departments = pgTable('departments', {
 });
 
 export const subjects = pgTable('subjects', {
-        id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
-        departmentId: integer('department_id').notNull().references(() => departments.id, { onDelete: 'restrict' }),
-        name: varchar('name', { length: 255 }).notNull(),
-        code: varchar('code', { length: 50 }).notNull().unique(),
-        description: varchar('description', { length: 255 }),
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    departmentId: integer('department_id').notNull().references(() => departments.id, { onDelete: 'restrict' }),
+    name: varchar('name', { length: 255 }).notNull(),
+    code: varchar('code', { length: 50 }).notNull().unique(),
+    description: varchar('description', { length: 255 }),
     ...timestamps
 });
 
@@ -56,6 +56,7 @@ export const classes = pgTable('classes', {
 ]);
 
 export const enrollments = pgTable('enrollments', {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
     studentId: text('student_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
     classId: integer('class_id').notNull().references(() => classes.id, { onDelete: 'cascade' }),
 }, (table) => [
