@@ -10,6 +10,7 @@ import cors from 'cors'
 import securityMiddleware from './middlewares/security.js';
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from './utils/auth.js';
+import { enrollments } from './services/db/schemas/appEntities.js';
 
 const app = express();
 const PORT = process.env.PORT;
@@ -37,6 +38,7 @@ app.use('/api/subjects', subjectRouter);
 app.use('/api/users', userRoutes);
 app.use('/api/classes', clasesRoutes);
 app.use('/api/departments', departmentRoutes);
+app.use('/api/enrollments', enrollments);
 
 app.get('/api/', (req, res) => {
     res.send('Api running, welcome!!! 😻')
