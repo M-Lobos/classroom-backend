@@ -1234,3 +1234,12 @@ GO TO the Frontend project now, enable RUM to monitoring the frontend as well.
 Go to [Railway](https://railway.com), enter you account and seek for your backend project on the projects tab. Select the project and open the modal related to it (by clickin on the project card), go to the variables tab and within address the FRONTEND_URL env variable and replace it for the current URL that hosts the frontend in production. Save, and redeploy.
 
 Go back to the client side of the project. 
+
+## Connecting to Render Provider
+When Railway stops working change to Render, use your githbub to deploy your backend.
+Go to [render.com](https://render.com/) and connect your github Render. Once inside select the Web Service tab, and connect your repo to it. Render should identify some features like language, branch, region (Try Ohio or Frankfurt if others start to ask for a credit card even when you have selected the free plan), etc. You should consider though to specify your Root Directory, in this case is we wont, as it is optional. But we will define:
+* **Build command** : npm install && npm run build (due the project uses typescript)
+* **Start Command** : node ./dist/app.js
+
+Then select the Free tier and the Environment Variables, and deploy. 
+
