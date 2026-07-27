@@ -44,11 +44,11 @@ app.use('/api/enrollments', enrollmentsRoutes);
 
 //mandar a services
 
-if (process.env.NODE_ENV !== 'production') {
-    app.get('/api', (req, res) => {
-        res.send('Api running, welcome!!! 😻');
-    });
+app.get('/api', (req, res) => {
+    res.send('Api running, welcome!!! 😻');
+});
 
+if (process.env.NODE_ENV !== 'production') {
     app.listen(PORT, () => {
         console.log(`Servidor local corriendo en http://localhost:${PORT}`);
     });
