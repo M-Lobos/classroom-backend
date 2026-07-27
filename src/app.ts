@@ -41,7 +41,7 @@ app.use('/api/classes', clasesRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/enrollments', enrollmentsRoutes);
 
-app.get('/api/', (req, res) => {
+app.get('/api', (req, res) => {
     res.send('Api running, welcome!!! 😻')
 })
 
