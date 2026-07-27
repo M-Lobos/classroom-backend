@@ -41,14 +41,16 @@ app.use('/api/classes', clasesRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/enrollments', enrollmentsRoutes);
 
-app.get('/api', (req, res) => {
-    res.send('Api running, welcome!!! 😻')
-})
 
 //mandar a services
-app.listen(PORT, () => {
-    console.log(`server running at http://localhost:${PORT}`);
-});
+// Opcional pero recomendado para evitar que tire warnings en Serverless:
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`Servidor local corriendo en http://localhost:${PORT}`);
+    });
+}
+
+export default app;
 
 
 
