@@ -1243,3 +1243,47 @@ Go to [render.com](https://render.com/) and connect your github Render. Once ins
 
 Then select the Free tier and the Environment Variables, and deploy. 
 
+IS'T WORKING!
+
+## Deploying backend on Vercel
+
+To Vercel can detect and read the Ex´press + Ts project as a function, the entry poing must be in the root of the project. 
+
+i. Create a JSON file called vercel.json in the root of the project at the same level as package.json. 
+```bash
+pwd 
+cd server
+touch vercel.json
+```
+ii. Create an object with the build commands the routes (This tells vercel to compile directly the Ts file use it's own engige, so there would be no problem with de dist folder.)
+```json
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "src/app.ts",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "src/app.ts"
+    }
+  ]
+}
+```
+iii. Push the changes to github
+```bash
+git add vercel.json
+git commit -m "chore: add vercel configuration"
+git push origin main
+```
+iv. Import the project to Vercel as done with the frontend
+
+    a. Add New -> new Project 
+    b. Search for the backend repocitory 
+
+v. Set up the envirorment variables
+
+vi. Hit deploy button. 
