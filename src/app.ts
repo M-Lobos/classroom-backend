@@ -43,7 +43,7 @@ app.use('/api/enrollments', enrollmentsRoutes);
 
 
 //mandar a services
-// Opcional pero recomendado para evitar que tire warnings en Serverless:
+
 if (process.env.NODE_ENV !== 'production') {
     app.listen(PORT, () => {
         console.log(`Servidor local corriendo en http://localhost:${PORT}`);
