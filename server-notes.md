@@ -1273,6 +1273,27 @@ ii. Create an object with the build commands the routes (This tells vercel to co
   ]
 }
 ```
+Export all the entry point file to Vecel can read it as a funcion
+
+```typescript
+/* 
+    ... all the code previous code here with no changes.
+*/
+
+app.get('/api', (req, res) => {
+    res.send('Api running, welcome!!! 😻');
+});
+
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`Servidor local corriendo en http://localhost:${PORT}`);
+    });
+}
+
+export default app; //<- and this
+```
+
+
 iii. Push the changes to github
 ```bash
 git add vercel.json
