@@ -23,15 +23,10 @@ if (!process.env.FRONTEND_URL) {
 
 app.use(cors({
     origin: process.env.FRONTEND_URL,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // <- 'OPTIONS' added to methods
+    methods: ['GET', 'POST', 'PUT', 'DELETE'], // <- 'OPTIONS' added to methods
     credentials: true,
 }))
 
-/* Handling OPTIONS in methods for PREFLIGHT reqs
-This are security requests automaticaly made by the browser before a HTTP requests (possible hazzard)
-located in a server domain different from the app location (Cross-Origin)
-*/
-app.options('*', cors()); // answer explicity to PREFLIGHT (OPTIONS) before process routes.
 
 app.all('/api/auth/*splat', toNodeHandler(auth));
 
