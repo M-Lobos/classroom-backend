@@ -27,7 +27,7 @@ app.use(cors({
     credentials: true,
 }))
 
-app.all('/api/auth/*splat', toNodeHandler(auth));
+app.all('/api/auth/*', toNodeHandler(auth));
 
 //middleware for json forms and multiformat
 app.use(express.json());

@@ -1308,3 +1308,12 @@ iv. Import the project to Vercel as done with the frontend
 v. Set up the envirorment variables
 
 vi. Hit deploy button. 
+
+## Regarding to auth end-points
+
+Better-auth library in the frontend manages the endpoints (by default api/auth). So there isn't need to rise a route manually as: 
+```javascript
+    app.post('/api/auth/sign-in/email')
+```
+In the router structure of Express, due the handler from Better auth manages that requests internaly
+
