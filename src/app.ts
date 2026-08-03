@@ -56,7 +56,7 @@ app.get('/api', (req, res) => {
 
 if (process.env.NODE_ENV !== 'production') {
     app.listen(PORT, () => {
-        console.log(`Servidor local corriendo en http://localhost:${PORT}`);
+        console.log(`Local server running at http://localhost:${PORT}`);
     });
 }
 
